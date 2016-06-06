@@ -1,1 +1,1 @@
-CRISPRdigger
+CRISPRdigger is a de novo CRISPR detection program which could identify more truncated DR and has higher accuracy and more contents in the test genomes compared with the present other tools-CRISPRFinder, CRT and PILER-CR.
