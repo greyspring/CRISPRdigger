@@ -24,10 +24,10 @@ else
 
 $lookfilelike="fna";
 
- &find_fileindir("./",$lookfilelike);
+&find_fileindir("./",$lookfilelike);
 
 @typelists=();
-$filelike="sameRLen.gff3|fna.PILERCROUT|fna.CRTOUT|gff";
+$filelike="gff3|fna.PILERCROUT|fna.CRTOUT|gff";
 #$filelike="sameRLen.gff3";
 @typelists=split(/\|/,$filelike);
 $typenumb=@typelists;
@@ -138,7 +138,7 @@ sub readresult
 	##@filepath=split('\/',$filedirname);
 	##$filename=$filepath[$#filepath];
 	@resultStrs=();
-	if ($filedirname=~/\.(sameRLen.gff3)$/)
+	if ($filedirname=~/\.(gff3)$/)
 	{
 	  #count CRISPR details: all numbers,beg-end in every CRISPR
 	  # NC_***  ProgrammeName CRISPRnumbs beg1 end1 SP1num beg2 end2 SP2num ...
@@ -175,7 +175,7 @@ sub old_readresult
 	##@filepath=split('\/',$filedirname);
 	##$filename=$filepath[$#filepath];
 	@resultStrs=();
-	if ($filedirname=~/\.(sameRLen.gff3)$/)
+	if ($filedirname=~/\.(gff3)$/)
 	{
 	  #count CRISPR details: all numbers,beg-end in every CRISPR
 	  # NC_***  ProgrammeName CRISPRnumbs beg1 end1 SP1num beg2 end2 SP2num ...
@@ -980,4 +980,3 @@ sub deletenulline
     system("rm -f $infile \n");
     rename("$tempfile", "$infile");
 }
-
