@@ -1,14 +1,15 @@
 #!/usr/bin/env_perl
-use lib "/home/smile/perl5lib/lib";
+use lib "/home/rqge/perl5lib/lib";
 #
 ##use lib "/home/smile/perl5lib/lib";
 #Author: grayspring
 #use strict;
 #use Bio::Seq;
 use Bio::SearchIO; 
+use Bio::SeqIO;
 use Getopt::Std;
 use Bio::SimpleAlign;
-use Bio::Tools::Run::Alignment::Clustalw;
+use  Bio::Tools::Run::Alignment::Clustalw;
 
 
 #use Bio::Tools::Run::StandAloneBlast;
@@ -16,7 +17,7 @@ use Bio::Tools::Run::Alignment::Clustalw;
 #-----------------------------------------------------
 getopts("i:B:d:t:s:p:R:g");
 
-$Input   = defined $opt_i ? $opt_i : "";
+$Inputfile   = defined $opt_i ? $opt_i : "";
 #$output    = defined $opt_o ? $opt_o : "";
 
 $SPMinDRratio=defined $opt_l ? $opt_l : 0.5;
@@ -28,41 +29,19 @@ $SPsimilary = defined $opt_s ? $opt_s : 0.50;#0.4-0.8
 $SameRratio = defined $opt_R ? $opt_R : 0.50;#0.4-0.8
 $blastsameR = defined $opt_B ? $opt_B : 0.35;#0.2-0.7
 $MaxDR     = defined $opt_d ? $opt_d: 47 ;
+$MinDR     = defined $opt_r ? $opt_r : 10;
 
 ##read the fasta data ,sub the first line,then substr
 
-usuage() if((!$Input)||($Help));
+usuage() if((!$Inputfile)||($Help));
 # -----------------------------------------------------
 
 $StarTime=time();
 
-open(IF, "$Input")||die "$!\n";
-
-my $bodystr;
-while(<IF>) 
-{
-	chomp;
-	next if /^#/;  # Allow embedded comments.
-
-	if(/^>/) 
-	{
-		$Name =$_;
-		$bodystr ='';	
-	}
-	else 
-	{
-		$bodystr .=$_;	
-	}
-}
-close (IF);
-
-$fnastrlen=length($bodystr);
-$default_l=int( 1 + log($fnastrlen) / log(4) );
-$extendeachsides= $MaxDR-$default_l;
-
-#¿¼ÂÇÔö¼ÓÈ¥µôÎÄ¼şÂ·¾¶´úÂë
-#Ôö¼ÓÈ¥µôÎÄ¼şÂ·¾¶´úÂë
-@pathfile=split(/\//,$Input);
+#open(IF, "$Input")||die "$!\n";
+#è€ƒè™‘å¢åŠ å»æ‰æ–‡ä»¶è·¯å¾„ä»£ç 
+#å¢åŠ å»æ‰æ–‡ä»¶è·¯å¾„ä»£ç 
+@pathfile=split(/\//,$Inputfile);
 $filefullname=$pathfile[$#pathfile];
 $filepath=();
 for ($pathI=0;$pathI<$#pathfile;$pathI++)
@@ -71,82 +50,120 @@ for ($pathI=0;$pathI<$#pathfile;$pathI++)
 }
 
 @filename =split( /\./,$filefullname);
-$Infile = $filepath.$filename[0];
 
 #@filename =split( /\./,$Input);
 #$Infile = $filename[0];
 
+my @DRstr='';
+my @lastgff='';
+my $subfilenum=0;
+$outfile=$filepath.$filename[0];
+$DRout="$outfile.dr";
+open(DRoutF,">>$DRout")||die "$!\n";
+push @DRstr,"#sequenceName","Start","End","oldID","ID","SPdist","CRISPRnum","Score","DRstring","SPstring\n";
+print DRoutF join("\t", @DRstr);
 
-##if (stat("$Infile\_rep_filt_stg1.fasta")<0)
-if ((-e "$Infile\_rep_filt_stg1.fasta" )&&(-s "$Infile\_rep_filt_stg1.fasta" >40 ))
+$SPout= "$outfile.sp";
+open(spoutF,">>$SPout")||die "$!\n";
+#push @spgff,"#SeqenceID","Source","Type","Start","End","Score","Strand","Phase","Rtype","CRISPRnum","SPnum","spLen","isame","SPstring\n";
+#print spoutF join("\t", @spgff);
+
+$gffoutput= "$outfile.gff3";
+open(crisproutF,">>$gffoutput")||die "$!\n";
+push @lastgff,"#SeqID","Source","Type","Start","End","Score","Strand","Phase","Attributes\n";
+print crisproutF join("\t", @lastgff);
+
+
+my $bodystr;
+my $egSeqObj = new Bio::SeqIO( -file   => "$Inputfile", -format => "fasta");
+while ( my $egSeqO = $egSeqObj->next_seq )
 {
-	print  "file $Infile\_rep_filt_stg1.fasta exist\n";
-	print " ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ \n";
+	$tline = $egSeqO->seq; $bodystr = "\U$tline\E"; $Inputid  = $egSeqO->id;
 	
-}
-else
-{
-	system ("build_lmer_table -tandem 60 -min 2 -sequence $Input -freq $Infile\.freq ");
-	system ("RepeatScout -sequence $Input -output $Infile\_rep.fasta -freq $Infile\.freq -L $extendeachsides -goodlength 20 -minthresh 2 -tandemdist 60");
-	system ("cat $Infile\_rep.fasta | /home/smile/bin/RepeatScout-1/filter-stage-1.prl > $Infile\_rep_filt_stg1.fasta ");
+	$subfilenum++;
+	my @inputsets=split(/\s+/,$Inputid);
+	my $subfile=$inputsets[0];
+	my $Input="subfile"."_".$subfilenum;
 	
-}
+	$Infile = $filepath.$filename[0].'_'.$Input;
 	
-my @stg1args=stat("$Infile\_rep_filt_stg1.fasta");
-##$stg1size = -s "$Infile\_rep_filt_stg1.fasta";
-##if ($stg1size >0)
-if ($stg1args[7] >0)
-{
-	##delete len(DR)>50 string in ***_filt_stg1.fasta
-	open(Stg1,"$Infile\_rep_filt_stg1.fasta")||die "$!\n";
-	$stg1out="$Infile\.stg1.fasta";
-	open (Stout,">$stg1out")||die "$!\n";
-	
-	while (<Stg1>)
+	open (IF,">$Input")||die "Error in opening the file: $Input\n";
+    print IF "\>$subfile\n"; 
+	print IF "$bodystr\n";
+    close(IF);
+
+	$fnastrlen=length($bodystr);
+	$default_l=int( 1 + log($fnastrlen) / log(4) );
+	$extendeachsides= $MaxDR-$default_l;
+
+	#if (stat("$Infile\_rep_filt_stg1.fasta")<0)
+	if ((-e "$Infile\_rep_filt_stg1.fasta" )&&(-s "$Infile\_rep_filt_stg1.fasta" >40 ))
 	{
-		chomp;
-		next if /^#/;  # Allow embedded comments.
-		if(/^>/) 
-		{
-			 $Name =$_;	
-		}
-		else 
-		{
-			my $tempRstr=$_;
-			if (length($tempRstr)<= $MaxDR)
-			{
-				print Stout $Name."\n";
-				print Stout $tempRstr."\n";				
-			}		
-		}		
-	}	
-	close(Stg1);
-	close(Stout);
-	
-	##if ((-e "$Infile\_rep_filt_stg2_thresh2.fasta" )&&(-s "$Infile\_rep_filt_stg2_thresh2.fasta" >40 ))
-	if ((-e "$Input.out" )&&(-s "$Input.out" >40 ))
-	{
-		print  "file $Input.out exist\n";
-		print "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n";
-	
+		print  "file $Infile\_rep_filt_stg1.fasta exist\n";
+		print " ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ \n";
+		
 	}
 	else
 	{
-		system ("RepeatMasker -cutoff 120 -s -lib $stg1out $Input ");		
-		$repeatime=time();
-		$onerepeatime=$repeatime-$StarTime;
-		print "***********repeatmaker.out ********running first time RepeatMasker ,the program use the time (s):$onerepeatime s ************** \n ";		
-			
-	} 
-	
-	####next step : judge the spacer :0.6~2 times length(DR)
-			
-		$output= "$Input.out";
-		$dataF="$output.gff3.data";
-		open(DatF,">$dataF")||die "$!\n";
-		open(outP,"$output")||die "$!\n";
-		##131 severs use this command
-		system ("grep \"Unspecified\" $output > $dataF");
+		system ("build_lmer_table -tandem 60 -min 2 -sequence $Input -freq $Infile\.freq ");
+		system ("RepeatScout -sequence $Input -output $Infile\_rep.fasta -freq $Infile\.freq -L $extendeachsides -goodlength 20 -minthresh 2 -tandemdist 60");
+		system ("cat $Infile\_rep.fasta | /home/rqge/bin/RepeatScout/filter-stage-1.prl > $Infile\_rep_filt_stg1.fasta ");
+		
+	}
+		
+	my @stg1args=stat("$Infile\_rep_filt_stg1.fasta");
+	##$stg1size = -s "$Infile\_rep_filt_stg1.fasta";
+	##if ($stg1size >0)
+	if ($stg1args[7] >0)
+	{
+		##delete len(DR)>50 string in ***_filt_stg1.fasta
+		open(Stg1,"$Infile\_rep_filt_stg1.fasta")||die "$!\n";
+		$stg1out="$Infile\.stg1.fasta";
+		open (Stout,">$stg1out")||die "$!\n";
+		
+		while (<Stg1>)
+		{
+			chomp;
+			next if /^#/;  # Allow embedded comments.
+			if(/^>/) 
+			{
+				 $Name =$_;	
+			}
+			else 
+			{
+				my $tempRstr=$_;
+				if ((length($tempRstr)<= $MaxDR)&&(length($tempRstr)>= $MinDR))
+				{
+					print Stout $Name."\n";
+					print Stout $tempRstr."\n";				
+				}		
+			}		
+		}	
+		close(Stg1);
+		close(Stout);
+		
+		##if ((-e "$Infile\_rep_filt_stg2_thresh2.fasta" )&&(-s "$Infile\_rep_filt_stg2_thresh2.fasta" >40 ))
+		if ((-e "$Input.out" )&&(-s "$Input.out" >40 ))
+		{
+			print  "file $Input.out exist\n";
+		}
+		else
+		{
+			system ("RepeatMasker -cutoff 120 -s -lib $stg1out $Input ");		
+			$repeatime=time();
+			$onerepeatime=$repeatime-$StarTime;
+			print "***********repeatmaker.out ********running first time RepeatMasker ,the program use the time (s):$onerepeatime s ************** \n ";		
+				
+		} 
+		
+		####next step : judge the spacer :0.6~2 times length(DR)
+				
+			$output= "$Input.out";
+			$dataF="$output.gff3.data";
+			open(DatF,">$dataF")||die "$!\n";
+			open(outP,"$output")||die "$!\n";
+			##131 severs use this command
+			system ("grep \"Unspecified\" $output > $dataF");
 
 		##system ("grep \"Unknown\" $output > $dataF");
 		close(DatF);
@@ -174,11 +191,11 @@ if ($stg1args[7] >0)
 		
 		#@similR=values %allsameRs;
 		### find the different direction--Reverse complement string in template R
-		#½«$templatefile×ÔÉí±È¶ÔÕÒ³ö´æÔÚµÄ·´Ïà»¥²¹ĞòÁĞ
+		#å°†$templatefileè‡ªèº«æ¯”å¯¹æ‰¾å‡ºå­˜åœ¨çš„åç›¸äº’è¡¥åºåˆ—
 		%reversestr=();
 		%reversestr=ReverseCmpTemp($templatefile,%allsameRs);
 			
-		###Ã¿´Î¶ÁÁ½ĞĞ½øĞĞ·ÖÎö£¬¸³Öµ×îºóÒ»ÁĞ£¬×öÎªĞÂµÄRÀàĞÍ		
+		###æ¯æ¬¡è¯»ä¸¤è¡Œè¿›è¡Œåˆ†æï¼Œèµ‹å€¼æœ€åä¸€åˆ—ï¼Œåšä¸ºæ–°çš„Rç±»å‹		
 		while (<DatF>)
 		{   
 		    chomp;
@@ -223,7 +240,7 @@ if ($stg1args[7] >0)
 			else
 			{$sndrvRkey=getpositiveR($snddirect,$sndRvalue,%reversestr);}
 			
-			## ÅĞ¶ÏÁ½ĞĞµÄRÀàĞÍÊÇ·ñÒ»ÖÂ»òÀàËÆ»ò·´Ïò»¥²¹
+			## åˆ¤æ–­ä¸¤è¡Œçš„Rç±»å‹æ˜¯å¦ä¸€è‡´æˆ–ç±»ä¼¼æˆ–åå‘äº’è¡¥
 			if ((($fstRvalue==$sndRvalue)&&( $fstdirect == $snddirect))||((gethashkey($fstRvalue,%allsameRs)>=0)&&(gethashkey($fstRvalue,%allsameRs)==gethashkey($sndRvalue,%allsameRs))&&( $fstdirect == $snddirect))||(($fstdirect != $snddirect)&&(($sndrvRkey>0)&&(($sndrvRkey==$fstrvRkey)))))
 			{
 				$sndRstr[15]=$fstRstr[15];
@@ -269,9 +286,14 @@ if ($stg1args[7] >0)
 		#$sameseqstr="$output.seqstr";
 		open(SameData,"$samelendata")||die "$!\n";
 		open(SameLenData,">$sameRLendata")||die "$!\n";
-		#open(SameSeqData,">$sameseqstr")||die "$!\n";
-		@firstfields='';
-		@fields='';
+			#open(SameSeqData,">$sameseqstr")||die "$!\n";
+			my @firstfields='';
+			my @fields='';
+			my @annotation='';
+			my @allgff='';
+			
+			my @sameRstring='';
+			my @result='';
 		#@Rdist;
 		#$nameR;
 		my $samelennum=0;
@@ -284,21 +306,21 @@ if ($stg1args[7] >0)
 		push @allgff,"#SeqID","Source","Type","Start","End","Score","Strand","Phase","Attributes\n";
 		print alloutF join("\t", @allgff);
 		
-		$DRout="$Infile.sameRLen.dr";
-		open(DRoutF,">$DRout")||die "$!\n";
-		push @DRstr,"sequenceName","Start","End","oldID","ID","SPdist","CRISPRnum","Score","DRstring","SPstring\n";
-		print DRoutF join("\t", @DRstr);
-		
-		$SPout= "$Infile.sameRLen.sp";
-		open(spoutF,">$SPout")||die "$!\n";
-		#push @spgff,"#SeqenceID","Source","Type","Start","End","Score","Strand","Phase","Rtype","CRISPRnum","SPnum","spLen","isame","SPstring\n";
-		#print spoutF join("\t", @spgff);
-		
-		$gffoutput= "$Infile.sameRLen.gff3";
-		open(crisproutF,">$gffoutput")||die "$!\n";
-		push @lastgff,"#SeqID","Source","Type","Start","End","Score","Strand","Phase","Attributes\n";
-		print crisproutF join("\t", @lastgff);
-		
+			# $DRout="$Infile.sameRLen.dr";
+			# open(DRoutF,">$DRout")||die "$!\n";
+			# push @DRstr,"sequenceName","Start","End","oldID","ID","SPdist","CRISPRnum","Score","DRstring","SPstring\n";
+			# print DRoutF join("\t", @DRstr);
+			
+			# $SPout= "$Infile.sameRLen.sp";
+			# open(spoutF,">$SPout")||die "$!\n";
+			# #push @spgff,"#SeqenceID","Source","Type","Start","End","Score","Strand","Phase","Rtype","CRISPRnum","SPnum","spLen","isame","SPstring\n";
+			# #print spoutF join("\t", @spgff);
+			
+			# $gffoutput= "$Infile.sameRLen.gff3";
+			# open(crisproutF,">$gffoutput")||die "$!\n";
+			# push @lastgff,"#SeqID","Source","Type","Start","End","Score","Strand","Phase","Attributes\n";
+			# print crisproutF join("\t", @lastgff);
+			
 		while (<SameData>)
 		{
 		    $dist=-1;
@@ -344,7 +366,7 @@ if ($stg1args[7] >0)
 		    {
 			@fields =split(/\s+/,$body);
 			##the same R
-			if ($firstfields[15] eq $fields[15] )
+					if (($firstfields[15] eq $fields[15] )&&($firstfields[4] eq $fields[4]))
 			{    	    
 			    $dist=$fields[5]-$firstfields[6];
 			    $fields[16]=$dist;
@@ -358,7 +380,7 @@ if ($stg1args[7] >0)
 				push @sameRstring,$oneRstring;
 				@firstfields=@fields;
 			    }
-			    ##else???´æÔÚÁ½ĞĞ¼ÇÂ¼Î»ÖÃÓĞ½»²æÇø£¬ÈçºÎÈ¡ÉáÆäÖĞÒ»¸ö£¿ÓëDRÏàËÆĞÔ¸ßµÄÒ»ĞĞÁôÏÂ
+			    ##else???å­˜åœ¨ä¸¤è¡Œè®°å½•ä½ç½®æœ‰äº¤å‰åŒºï¼Œå¦‚ä½•å–èˆå…¶ä¸­ä¸€ä¸ªï¼Ÿä¸DRç›¸ä¼¼æ€§é«˜çš„ä¸€è¡Œç•™ä¸‹
 			    
 			}						
 			else
@@ -409,14 +431,14 @@ if ($stg1args[7] >0)
 		close(SameData);
 		close(SameLenData);
 		#close(SameSeqData);
-		close (DRoutF);
-		close(spoutF);
-		close(crisproutF);
+			# close (DRoutF);
+			# close(spoutF);
+			# close(crisproutF);
 		close(alloutF);
 	#}
 }
 
-###¸üĞÂgffÎÄ¼şÄÚÈİ½«´æÔÚoverlapµÄºÏ²¢£¨³õÆÚRÀàĞÍ¿ÉÄÜ²»Ò»ÖÂ£¬µ«Êµ¼Ê±È½ÏÀàËÆ£¬ĞèÒª½«²»Í¬ÀàĞÍR´æÔÚoverlapµÄCRISPRsºÏ²¢£©
+###æ›´æ–°gffæ–‡ä»¶å†…å®¹å°†å­˜åœ¨overlapçš„åˆå¹¶ï¼ˆåˆæœŸRç±»å‹å¯èƒ½ä¸ä¸€è‡´ï¼Œä½†å®é™…æ¯”è¾ƒç±»ä¼¼ï¼Œéœ€è¦å°†ä¸åŒç±»å‹Rå­˜åœ¨overlapçš„CRISPRsåˆå¹¶ï¼‰
 system("rm  -rf $tmpdir \n");
 system("rm -f $Input\.* $Infile\_* $Infile\.stg* $Infile\.freq");
 system("rm  -f formatdb.log \n");
@@ -430,6 +452,11 @@ system("rm  -f formatdb.log \n");
 
 
 ##deletefalsegff($gffoutput);
+	system("rm -f $Input");
+}
+close (DRoutF);
+close(spoutF);
+close(crisproutF);
 
 
 $EndTime=time();
@@ -445,7 +472,7 @@ sub usuage {
 
     Usage :CRISPRdigger.pl <options> <specification> <default>
      
-	\$Input   = defined $opt_i ? $opt_i : "";
+	\$Inputfile   = defined $opt_i ? $opt_i : "";
 	\$SPMinDRratio=defined $opt_l ? $opt_l : 0.5;
 	\$SPMaxDRratio=defined $opt_m ? $opt_m : 3.0;
 	\$MinSP     = defined $opt_g ? $opt_g : 10;
@@ -986,7 +1013,7 @@ sub findnearnum
 		elsif(($onestr[16]<$MaxSP)&&($anotherstr[16]>$DRSPlen)&&($anotherstr[16]<2*$DRSPlen))
 		{
 		    $isflag=1;
-		    #ÖĞ¼ä´æÔÚ¼ä¸ôDRÇé¿ö´¦Àí:@onestr__gap__@anotherstr:ËÄÉáÎåÈë
+		    #ä¸­é—´å­˜åœ¨é—´éš”DRæƒ…å†µå¤„ç†:@onestr__gap__@anotherstr:å››èˆäº”å…¥
 		      $beginlocDR=int(($anotherstr[5]-$onestr[5])/2+0.5)+$onestr[5];
 		      $DRlen=int(($onestr[6]-$onestr[5]+$anotherstr[6]-$anotherstr[5])/2+0.5+1);
 		      $anlaystr=substr($bodystr,$beginlocDR-1,$DRlen);
@@ -1033,7 +1060,7 @@ sub findnearnum
 		elsif(($anotherstr[16]<$MaxSP)&&($onestr[16]>$DRSPlen)&&($onestr[16]<2*$DRSPlen))
 		{
 		      $isflag=1;
-		      #ÖĞ¼ä´æÔÚ¼ä¸ôDRÇé¿ö´¦Àí:@beforestr__gap_____@onestr 
+		      #ä¸­é—´å­˜åœ¨é—´éš”DRæƒ…å†µå¤„ç†:@beforestr__gap_____@onestr 
 		      $beginlocDR=int(($onestr[5]-$beforestr[5])/2+0.5)+$beforestr[5];
 		      $DRlen=int(($onestr[6]-$onestr[5]+$anotherstr[6]-$anotherstr[5])/2+0.5+1);
 		      $anlaystr=substr($bodystr,$beginlocDR-1,$DRlen);
@@ -1621,11 +1648,15 @@ sub findspaceCRISPR
 		$spgff[12]=0;                  ##is or not same spaces
 		$spgff[13]=substr($bodystr,$spgff[3]-1,$spgff[11]);
 		@seqnamestr=split(/\|/,$spgff[0]);	
-		$spaces[0]=">".$seqnamestr[3]."_".$spgff[8]."_".$spgff[9]."_".$spgff[10]."_".$spgff[11]."_".$spgff[12];
-		$spaces[1]=$spgff[13];
+		
+		if (length($spgff[13])>2)
+		{
+			$spaces[0]=">".$seqnamestr[3]."_".$spgff[8]."_".$spgff[9]."_".$spgff[10]."_".$spgff[11]."_".$spgff[12];
+			$spaces[1]=$spgff[13];
+		}
 		
 		my $tempaveDRlen=sprintf("%.1f",$aveDRlen/($exist+1));
-		if (($spgff[11]<$SPMaxDRratio*$tempaveDRlen)&&($spgff[11]>$SPMinDRratio*$tempaveDRlen))
+		if (($spgff[11]<$SPMaxDRratio*$tempaveDRlen)&&($spgff[11]>$SPMinDRratio*$tempaveDRlen)&& length($spaces[1])>5)
 		{
 			push @onespaces,join("\n",@spaces)."\n";	
 			push @oneCRISPR ,join("\t", @spgff)."\n";
@@ -2362,6 +2393,7 @@ sub getSPinfor
 	@sndDRstr=split("\t",$DRinfor[$line+1]);
 	
 	@getname=split('\|',$fstDRstr[0]);
+	#$SPnotestr=">".$Input."|".$getname[3]."|".$fstDRstr[4]."|".$fstDRstr[6]."|".$spnum;
 	$SPnotestr=">".$getname[3]."|".$fstDRstr[4]."|".$fstDRstr[6]."|".$spnum;
 	if (($fstDRstr[4]eq $sndDRstr[4])&&($fstDRstr[6] eq $sndDRstr[6]))
 	{
@@ -2768,7 +2800,7 @@ system("blastall -p blastn -i ./datas/$cmpF -d ./datas/$templateF -W 7 -o ./data
 
 #(seqname,Rvalue,benginlocal,cmpstrlen,cmpstr) blast
 #return oen or two DR(begin,end)
-#±ß½ç´æÔÚÅÅĞò²»Ò»ÖÂÇé??¹Ê²»ÄÜÓÃblast
+#è¾¹ç•Œå­˜åœ¨æ’åºä¸ä¸€è‡´æƒ…??æ•…ä¸èƒ½ç”¨blast
 sub blastDRstr
 {
     #my ($seqname,$Rtype,$beginloc,$cmplen,$DRstr)=@_;
@@ -2946,14 +2978,14 @@ sub samegapstring
    return @sequencestr;	
 }
 
-#»¥²¹×Ö·ûĞòÁĞĞŞ¸Ä
+#äº’è¡¥å­—ç¬¦åºåˆ—ä¿®æ”¹
 sub DNA_reverser {
     my($Seq) = @_;
 	$Seq = reverse $Seq;
 	$Seq =~ tr/ACGTacgt/TGCAtgca/;
     return($Seq);
 }
-#±È½ÏÁ½¸öÏàÍ¬³¤¶È×Ö·û´®¸÷¸ö×Ö·ûµÄÒìÍ¬
+#æ¯”è¾ƒä¸¤ä¸ªç›¸åŒé•¿åº¦å­—ç¬¦ä¸²å„ä¸ªå­—ç¬¦çš„å¼‚åŒ
 sub Str_Compare
 {
     my ($Seq1,$Seq2) =@_;
@@ -3154,7 +3186,7 @@ sub sameRtemplate
                 }		
             }
 	    
-#	   ##¿¼ÂÇÔÚÕâÀïÔö¼Ó·´Ïà»¥²¹´®µÄ²éÕÒ¡£¡£¡£ 	   
+#	   ##è€ƒè™‘åœ¨è¿™é‡Œå¢åŠ åç›¸äº’è¡¥ä¸²çš„æŸ¥æ‰¾ã€‚ã€‚ã€‚ 	   
 #	   if ((abs($Len{$fname}/$Len{$sname}-1)<0.3)&&($reverseflag{$fname}==0)&&($reverseflag{$sname}==0))
 #            {
 #                #compare strings
@@ -3325,7 +3357,7 @@ sub ReverseCmpTemp
     return %reverseR;     	
 }
 
-##?¨¹ıÖµ»ñÈ¡hash key value##valueÖĞÎŞÖØ¸´
+##?Ã¼î¿ç¥·è¢¢î“®ash key value##valueä¸­æ— é‡å¤
 sub gethashkey
 {
    my ($somevalue,%allR)=@_;  
@@ -3343,7 +3375,7 @@ sub gethashkey
   return -1;	
 }
 
-###Í¨¹ıÅĞ¶Ï·½Ïò£¬¼°·´Ïò»¥²¹£¬»ñµÃ¸³ÖµÄ³R
+###é€šè¿‡åˆ¤æ–­æ–¹å‘ï¼ŒåŠåå‘äº’è¡¥ï¼Œè·å¾—èµ‹å€¼æŸR
 sub getpositiveR
 {
   my ($Rdir,$Rvalue,%reverseR)=@_;
@@ -3420,4 +3452,3 @@ sub deletenulline
     system("rm -f $infile \n");
     rename("$tempfile", "$infile");
 }
-
