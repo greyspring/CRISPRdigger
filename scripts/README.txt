@@ -39,7 +39,7 @@ a. pre-requirement
    Some softwares need to be installed successfully before execute the CRISPRdigger. The envionment variables also were modified by the script automatically.
    The command line like this which you only need to execute in the "scripts" directory:
          perl AutoconfigCRISPRdigger.pl  
-   After executing the last script, the tips was given about how to further install the RepeatMasker in the screen or in the file:"other_config.txt".
+   After executing the last script, the tips was given about how to further install the RepeatMasker in the screen or in the file:"softwares/other_config.txt".
    You maybe also need to source your file ".bash_profile" in your home directory, the command like: source .bash_profile
 
 b. Execute the script to discover all CRISPRs
