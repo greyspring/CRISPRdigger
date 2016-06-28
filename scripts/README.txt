@@ -14,11 +14,13 @@ The purpose of the CRISPRdigger software is to identify CRISPR sequences in the 
 This directory contains the scripts of about CRISPRdigger software
 with the following files:
 
-"softwares/                 contains a few tools which need to be auto installed."
-
 "scripts/                   contains different script files, as described in the manual."
 
-AutoconfigCRISPRdigger.pl   is a perl script to auto-install all the softwares which the CRISPRdigger script need. This script needs to be executed in the first step.
+"softwares_all.rar 			contains all tools which need to be auto installed. Please change its directory into the same folder with scripts after decompressed or unzipped it."
+"softwares/                 contains a few tools which need to be auto installed. Other tools can be auto download an installed by AutoconfigCRISPRdigger.pl."
+Hint: You just need select one way in two directorys(softwares_all,softwares) to install the needed tools by AutoconfigCRISPRdigger.pl.
+
+AutoconfigCRISPRdigger.pl   is a perl script to auto-install all the softwares which the CRISPRdigger script need. This script needs to be executed in the first step. Please do not change their directory optionally.
 
 CRISPRdigger_manual.pdf    is the complete manual for the CRISPRdigger software.
 
@@ -50,5 +52,6 @@ The command line like this:
 
 4. Feedback
 ===========
- Please contact the development team at: fengfengzhou@gmail.com or ruiquange@gmail.com to submit questions or feedback
- for us.
+ Please contact the development team at: fengfengzhou@gmail.com or ruiquange@gmail.com to submit questions or feedback for us.
+
+ 

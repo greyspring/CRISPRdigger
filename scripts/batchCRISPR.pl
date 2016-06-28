@@ -81,8 +81,8 @@ sub find_fileindir
     if ($file =~/\.($filelike)$/i)
     {         
       system("perl CRISPRdigger.pl -i $dir\/$file \n");   
-#      system("pilercr -in $dir\/$file -out $dir\/$file\.PILERCROUT  -noinfo \n");  
-#      system("java -cp /home/rqge/bin/CRT1.2-CLI.jar crt $dir\/$file $dir\/$file\.CRTOUT\n");
+	  #system("pilercr -in $dir\/$file -out $dir\/$file\.PILERCROUT  -noinfo -minrepeat 23 -maxrepeat 55 -minspacer 10 -maxspacer 120 \n");  
+      #system("java -cp /home/rqge/bin/CRT1.2-CLI.jar crt -minRL 23 -maxRL 55 -minSL 10 -maxSL 120 $dir\/$file $dir\/$file\.CRTOUT \n");
       
 #     system ("cp $dir\/$file .\/ \n");
 #      system(" perl CRISPRFinder.pl $file $file\.gffout \n ");
@@ -980,3 +980,4 @@ sub deletenulline
     system("rm -f $infile \n");
     rename("$tempfile", "$infile");
 }
+

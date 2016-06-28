@@ -58,7 +58,7 @@ if (-e  "clustalw-2.1.tar.gz")
 {;}
 else
 {
-	system("wget http://www.clustal.org/download/current/clustalw-2.1.tar.gz &>install.log");
+	system("wget http://www.clustal.org/download/current/clustalw-2.1.tar.gz &>>install.log");
 }
 
 system("tar zxvf clustalw-2.1.tar.gz \n");
@@ -73,17 +73,17 @@ chdir "$softwaresdir/";
 if (-e  "blast-2.2.26-x64-linux.tar.gz")
 {;}
 else
-{system("wget http://mirrors.vbi.vt.edu/mirrors/ftp.ncbi.nih.gov/blast/executables/release/2.2.26/blast-2.2.26-x64-linux.tar.gz &>install.log");}
+{system("wget http://mirrors.vbi.vt.edu/mirrors/ftp.ncbi.nih.gov/blast/executables/release/2.2.26/blast-2.2.26-x64-linux.tar.gz &>>install.log");}
 
 if (-e  "ncbi-blast-2.2.28+-x64-linux.tar.gz")
 {;}
 else
-{system("wget http://mirrors.vbi.vt.edu/mirrors/ftp.ncbi.nih.gov/blast/executables/blast%2b/2.2.28/ncbi-blast-2.2.28+-x64-linux.tar.gz &>install.log");}
+{system("wget http://mirrors.vbi.vt.edu/mirrors/ftp.ncbi.nih.gov/blast/executables/blast%2b/2.2.28/ncbi-blast-2.2.28+-x64-linux.tar.gz &>>install.log");}
 
 if (-e  "ncbi-rmblastn-2.2.28-x64-linux.tar.gz")
 {;}
 else
-{system("wget http://mirrors.vbi.vt.edu/mirrors/ftp.ncbi.nih.gov/blast/executables/rmblast/2.2.28/ncbi-rmblastn-2.2.28-x64-linux.tar.gz &>install.log");}
+{system("wget http://mirrors.vbi.vt.edu/mirrors/ftp.ncbi.nih.gov/blast/executables/rmblast/2.2.28/ncbi-rmblastn-2.2.28-x64-linux.tar.gz &>>install.log");}
 
 system("tar zxvf blast-2.2.26-x64-linux.tar.gz \n");
 system("tar zxvf ncbi-blast-2.2.28+-x64-linux.tar.gz \n");
@@ -98,12 +98,12 @@ print "install RMBlast success! \n";
 ##RepeatMask °²×°ÓëÅäÖÃ
 chdir "$softwaresdir/";
 
-#system("wget http://www.repeatmasker.org/RepeatMasker-open-4-0-3.tar.gz &>install.log");
+#system("wget http://www.repeatmasker.org/RepeatMasker-open-4-0-3.tar.gz &>>install.log");
 if (-e  "RepeatMasker-open-4-0-3.tar.gz*")
 {;}
 else
 {
-	system("wget --user-agent=\"Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3 (.NET CLR 3.5.30729)\" http://www.repeatmasker.org/RepeatMasker-open-4-0-3.tar.gz &>install.log");
+	system("wget --user-agent=\"Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3 (.NET CLR 3.5.30729)\" http://www.repeatmasker.org/RepeatMasker-open-4-0-3.tar.gz &>>install.log");
 }
 my $tmpRMf="RepeatMasker-open-4-0-3.tar.gz";
 	 system("mv RepeatMasker-open-4-0-3.tar.gz* RepeatMasker-open-4-0-3.tar.gz");
@@ -124,11 +124,11 @@ print "Only left RepeatMasker to be installed in the last! \n";
 #system("cd $softwaresdir \n");
 chdir "$softwaresdir/";
 
-#system("wget http://bix.ucsd.edu/repeatscout/RepeatScout-1.0.5.tar.gz &>install.log");
+#system("wget http://bix.ucsd.edu/repeatscout/RepeatScout-1.0.5.tar.gz &>>install.log");
 if (-e  "RepeatScout-1.0.5.tar.gz")
 {;}
 else
-{system("wget --user-agent=\"Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3 (.NET CLR 3.5.30729)\" http://bix.ucsd.edu/repeatscout/RepeatScout-1.0.5.tar.gz &>install.log");}
+{system("wget --user-agent=\"Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3 (.NET CLR 3.5.30729)\" http://bix.ucsd.edu/repeatscout/RepeatScout-1.0.5.tar.gz &>>install.log");}
 
 # if (-e "RepeatScout-1.0.5.tar.gz*")
 # {
@@ -173,7 +173,7 @@ updatescript();
      
      
      $confevent.="\n ############ Running an example ##############\n";
-     $confevent.="You shouled modify your  directory into the script directory: \n";
+     $confevent.="You should modify your  directory into the script directory: \n";
      $confevent.="1. cd $scriptdir/ \n";
      $confevent.="2. perl CRISPRdigger.pl -i example.fna \n \n";   
      print $confevent;
